@@ -16,11 +16,28 @@ How you work:
 - If a place is closed, say so and pick something else.
 - Keep replies under 120 words.`;
 
+const SINGAPORE_TIME = new Intl.DateTimeFormat("en-SG", {
+  timeZone: "Asia/Singapore",
+  weekday: "long",
+  day: "numeric",
+  month: "long",
+  year: "numeric",
+  hour: "numeric",
+  minute: "2-digit",
+});
+
+/**
+ * Format a Date as Singapore local time, e.g. "Friday, 2 October 2026 at 12:30 pm".
+ * Workers run in UTC, so the time zone must be explicit.
+ */
+export function formatSingaporeTime(date) {
+  return SINGAPORE_TIME.format(date);
+}
+
 /**
  * Build the system prompt for one request.
  */
-export function buildSystemPrompt() {
+export function buildSystemPrompt(now = new Date()) {
   const requestId = crypto.randomUUID();
-  const now = new Date().toISOString();
-  return `Request ${requestId} at ${now}. ${PERSONA}`;
+  return `Request ${requestId}. The current time is ${formatSingaporeTime(now)}, Singapore time (UTC+8). ${PERSONA}`;
 }
