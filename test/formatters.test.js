@@ -1,10 +1,13 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
+  CT_HUB_2,
   formatForecast,
   formatBusArrivals,
+  formatPlaces,
   haversineMetres,
 } from "../src/tools.js";
+import { formatSingaporeTime } from "../src/prompt.js";
 
 test("formatForecast picks the requested area", () => {
   const payload = {
@@ -49,9 +52,40 @@ test("formatBusArrivals converts durations to whole minutes", () => {
   });
 });
 
-test("haversineMetres measures CT Hub 2 to Lavender MRT at under 600 m", () => {
-  const ctHub2 = { latitude: 1.3115, longitude: 103.8615 };
+test("haversineMetres measures CT Hub 2 to Lavender MRT at 400-550 m", () => {
   const lavenderMrt = { latitude: 1.3073, longitude: 103.8631 };
-  const distance = haversineMetres(ctHub2, lavenderMrt);
+  const distance = haversineMetres(CT_HUB_2, lavenderMrt);
   assert.ok(distance > 400 && distance < 550, `got ${distance}`);
+});
+
+test("formatPlaces keeps open status and measures from the origin", () => {
+  const places = [
+    {
+      displayName: { text: "Lavender Food Square" },
+      rating: 4.1,
+      location: { latitude: 1.3073, longitude: 103.8631 },
+      currentOpeningHours: { openNow: false },
+    },
+    { displayName: { text: "No Hours Stall" }, location: CT_HUB_2 },
+  ];
+
+  const [square, stall] = formatPlaces(places, CT_HUB_2);
+  assert.equal(square.name, "Lavender Food Square");
+  assert.equal(square.open_now, false);
+  assert.ok(square.distance_m > 400 && square.distance_m < 550);
+  assert.equal(stall.open_now, null);
+  assert.equal(stall.distance_m, 0);
+});
+
+test("formatSingaporeTime converts UTC to Singapore time and date", () => {
+  // 04:30 UTC is 12:30 pm in Singapore.
+  const lunch = formatSingaporeTime(new Date("2026-10-02T04:30:00Z"));
+  assert.match(lunch, /Friday/);
+  assert.match(lunch, /12:30/);
+  assert.match(lunch, /pm/i);
+
+  // 20:00 UTC Thursday is 4 am Friday in Singapore.
+  const early = formatSingaporeTime(new Date("2026-10-01T20:00:00Z"));
+  assert.match(early, /Friday/);
+  assert.match(early, /2 October/);
 });
